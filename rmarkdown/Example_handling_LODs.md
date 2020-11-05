@@ -1,0 +1,116 @@
+---
+title: "Example of how to deal with no detects"
+author: "Jose Luis Rodriguez Gil"
+date: "05/11/2020"
+output: 
+  html_document:
+    keep_md: true
+---
+
+
+
+
+```r
+library(tidyverse)
+```
+
+```
+## ── Attaching packages ──────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──
+```
+
+```
+## ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
+## ✓ tibble  3.0.3     ✓ dplyr   1.0.2
+## ✓ tidyr   1.1.2     ✓ stringr 1.4.0
+## ✓ readr   1.3.1     ✓ forcats 0.5.0
+```
+
+```
+## ── Conflicts ─────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()
+```
+
+# Making some mock data to work with
+
+lets make a table of 100 samples with values for two compounds
+
+
+```r
+lod_data <- tibble(sample_id = seq(1,100),                                  # Just a sequence of numbers from 1 to 100 as sample ID
+                   compound_a = rnorm(100, 24, 20),                         # 100 concentrations, normally distributed around 24 with an SD of 20
+                   compound_b = rnorm(100, 50, 50)) %>%                     # 100 concentrations, normally distributed around 50 with an SD of 50
+  mutate(compound_a = ifelse(compound_a < 10, "<10.0", compound_a),
+         compound_b = ifelse(compound_b < 20.5, "<20.5", compound_b))       # no we use ifelse() to give all samples below the LOD an "<LOD" value
+```
+
+# change the <LODs for zeros
+
+One aproach that can be followed is to change the samples below the Limit od Detection (LOD) for a zero:
+
+
+```r
+lod_data %>% 
+  pivot_longer(cols = -sample_id, names_to = "compound", values_to = "concentration") %>% 
+  mutate(concentration = str_replace(concentration, "^<[:graph:]*", "0")) %>% 
+  mutate(concentration = as.numeric(concentration))
+```
+
+```
+## # A tibble: 200 x 3
+##    sample_id compound   concentration
+##        <int> <chr>              <dbl>
+##  1         1 compound_a           0  
+##  2         1 compound_b          40.1
+##  3         2 compound_a          30.5
+##  4         2 compound_b          40.7
+##  5         3 compound_a          42.0
+##  6         3 compound_b          74.2
+##  7         4 compound_a          16.0
+##  8         4 compound_b           0  
+##  9         5 compound_a           0  
+## 10         5 compound_b         141. 
+## # … with 190 more rows
+```
+
+`str_replace()` from the `{stringr}` package (loads automatically with `{tydiverse}`) is quite handy for this, it looks for whatever pattern you tell it, and changes it for whatever you say.
+
+In this case we use **regular expressions** (regex) to fin a string of any length (the `*` at the end) of any content (numbers, letters, symbols) (the `[:graph:]` part), that starts with "<" (the `^<` part). When it finds these, it change sthem to zeros
+
+Because there were "<" in the original data, the column was loaded as text, so the last step s to turn it into a numeric variable.
+
+I recomend checking the `{stringr}` [cheatsheet](https://github.com/rstudio/cheatsheets/blob/master/strings.pdf), for more detail on **regex**. They can be quite a pain.
+
+# Change <LODs to LOD/2
+
+Another common substitution aproach is to change the samples below the lod for a value of 1/2 the LOD. This aproach assumes that all those samples would have their own normal distribution with a min of 0 and a max of the LOD, so the mean should be LOD/2.
+
+The ideal case scenario would be for you to have a separate table of LODs. So you could join this with your results table and have a complete LOD column that we can use to make our calculations. Most times, this is not the case, so the most convenient aproach would be to extract the info contained in those "<XX" samples to create an LOD column, which then we will use to mutate the concentration column with a LOD/2 value
+
+
+```r
+lod_data %>% 
+  pivot_longer(cols = -sample_id, names_to = "compound", values_to = "concentration") %>% 
+    mutate(lod = str_extract(concentration, "(?<=<)[:graph:]*")) %>%    # here we use the "preceeded by <" ("(?<=<)") aproach, as we only want to keep the numbers
+  mutate(lod = as.numeric(lod)) %>%  # we need to calculate the LOD/2, so we need it to be a number
+  mutate(concentration = str_replace(concentration, "^<[:graph:]*", as.character(lod/2))) %>%  # same as before but now we replace with LOD/2. Additional "problem", because here we are working with strings, if we try to give it a number, it doesnt like it, so we need to soround that LOD/2 by that "as.character()"
+  mutate(concentration = as.numeric(concentration)) # Now it can all be converted to numbers again!
+```
+
+```
+## # A tibble: 200 x 4
+##    sample_id compound   concentration   lod
+##        <int> <chr>              <dbl> <dbl>
+##  1         1 compound_a           5    10  
+##  2         1 compound_b          40.1  NA  
+##  3         2 compound_a          30.5  NA  
+##  4         2 compound_b          40.7  NA  
+##  5         3 compound_a          42.0  NA  
+##  6         3 compound_b          74.2  NA  
+##  7         4 compound_a          16.0  NA  
+##  8         4 compound_b          10.2  20.5
+##  9         5 compound_a           5    10  
+## 10         5 compound_b         141.   NA  
+## # … with 190 more rows
+```
+
