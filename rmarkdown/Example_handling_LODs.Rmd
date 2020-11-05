@@ -11,7 +11,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r packages needed}
+```{r packages needed, include=FALSE}
 
 library(tidyverse)
 
@@ -28,6 +28,8 @@ lod_data <- tibble(sample_id = seq(1,100),                                  # Ju
                    compound_b = rnorm(100, 50, 50)) %>%                     # 100 concentrations, normally distributed around 50 with an SD of 50
   mutate(compound_a = ifelse(compound_a < 10, "<10.0", compound_a),
          compound_b = ifelse(compound_b < 20.5, "<20.5", compound_b))       # no we use ifelse() to give all samples below the LOD an "<LOD" value
+
+print(lod_data)
 
 ```
 

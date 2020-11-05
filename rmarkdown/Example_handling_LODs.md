@@ -10,26 +10,6 @@ output:
 
 
 
-```r
-library(tidyverse)
-```
-
-```
-## ── Attaching packages ──────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──
-```
-
-```
-## ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
-## ✓ tibble  3.0.3     ✓ dplyr   1.0.2
-## ✓ tidyr   1.1.2     ✓ stringr 1.4.0
-## ✓ readr   1.3.1     ✓ forcats 0.5.0
-```
-
-```
-## ── Conflicts ─────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-## x dplyr::filter() masks stats::filter()
-## x dplyr::lag()    masks stats::lag()
-```
 
 # Making some mock data to work with
 
@@ -42,6 +22,25 @@ lod_data <- tibble(sample_id = seq(1,100),                                  # Ju
                    compound_b = rnorm(100, 50, 50)) %>%                     # 100 concentrations, normally distributed around 50 with an SD of 50
   mutate(compound_a = ifelse(compound_a < 10, "<10.0", compound_a),
          compound_b = ifelse(compound_b < 20.5, "<20.5", compound_b))       # no we use ifelse() to give all samples below the LOD an "<LOD" value
+
+print(lod_data)
+```
+
+```
+## # A tibble: 100 x 3
+##    sample_id compound_a       compound_b      
+##        <int> <chr>            <chr>           
+##  1         1 18.2536257604069 128.650881415697
+##  2         2 31.3117637522976 43.2665229978174
+##  3         3 26.3594414454959 21.4488660477753
+##  4         4 <10.0            <20.5           
+##  5         5 38.0273324774875 38.2310119424659
+##  6         6 71.9456833945761 <20.5           
+##  7         7 35.746663471494  47.0092896554522
+##  8         8 19.6314143114086 28.4785262017548
+##  9         9 24.8808402407629 31.7743010516316
+## 10        10 27.4458081630701 109.67303574835 
+## # … with 90 more rows
 ```
 
 # change the <LODs for zeros
@@ -60,16 +59,16 @@ lod_data %>%
 ## # A tibble: 200 x 3
 ##    sample_id compound   concentration
 ##        <int> <chr>              <dbl>
-##  1         1 compound_a           0  
-##  2         1 compound_b          40.1
-##  3         2 compound_a          30.5
-##  4         2 compound_b          40.7
-##  5         3 compound_a          42.0
-##  6         3 compound_b          74.2
-##  7         4 compound_a          16.0
+##  1         1 compound_a          18.3
+##  2         1 compound_b         129. 
+##  3         2 compound_a          31.3
+##  4         2 compound_b          43.3
+##  5         3 compound_a          26.4
+##  6         3 compound_b          21.4
+##  7         4 compound_a           0  
 ##  8         4 compound_b           0  
-##  9         5 compound_a           0  
-## 10         5 compound_b         141. 
+##  9         5 compound_a          38.0
+## 10         5 compound_b          38.2
 ## # … with 190 more rows
 ```
 
@@ -101,16 +100,16 @@ lod_data %>%
 ## # A tibble: 200 x 4
 ##    sample_id compound   concentration   lod
 ##        <int> <chr>              <dbl> <dbl>
-##  1         1 compound_a           5    10  
-##  2         1 compound_b          40.1  NA  
-##  3         2 compound_a          30.5  NA  
-##  4         2 compound_b          40.7  NA  
-##  5         3 compound_a          42.0  NA  
-##  6         3 compound_b          74.2  NA  
-##  7         4 compound_a          16.0  NA  
+##  1         1 compound_a          18.3  NA  
+##  2         1 compound_b         129.   NA  
+##  3         2 compound_a          31.3  NA  
+##  4         2 compound_b          43.3  NA  
+##  5         3 compound_a          26.4  NA  
+##  6         3 compound_b          21.4  NA  
+##  7         4 compound_a           5    10  
 ##  8         4 compound_b          10.2  20.5
-##  9         5 compound_a           5    10  
-## 10         5 compound_b         141.   NA  
+##  9         5 compound_a          38.0  NA  
+## 10         5 compound_b          38.2  NA  
 ## # … with 190 more rows
 ```
 
